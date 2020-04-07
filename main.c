@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+GLuint prog;
 GLuint vbo;
 
 char *readFile(const char *fileName) {
@@ -41,42 +42,6 @@ char *readFile(const char *fileName) {
     return res;
 }
 
-void display() {
-    glClearColor(0.0f, 0.0f, 1.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_POINTS, 0, 4);
-    glDisableVertexAttribArray(0);
-
-    glutSwapBuffers();
-}
-
-void createProg(GLuint *shaders, int len) {
-    int i = 0;
-    GLuint prog = glCreateProgram();
-    if (!prog) {
-        fprintf(stderr, "Failed to create shader program\n");
-        exit(1);
-    }
-    for (; i < len; i++) {
-        glAttachShader(prog, shaders[i]);
-    }
-    glLinkProgram(prog);
-    GLint status;
-    glGetProgramiv(prog, GL_LINK_STATUS, &status);
-    if (status == GL_FALSE) {
-        GLint infoLen;
-        glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &infoLen);
-        GLchar *info = malloc(sizeof(GLchar) * (infoLen + 1));
-        glGetProgramInfoLog(prog, infoLen, NULL, info);
-        fprintf(stderr, "Linker failure: %s\n", info);
-        exit(1);
-    }
-}
-
 GLuint createShader(const char *shaderFile, GLenum shaderType) {
     const char *strShaderType;
     if (shaderType == GL_VERTEX_SHADER) {
@@ -111,12 +76,34 @@ GLuint createShader(const char *shaderFile, GLenum shaderType) {
     return shader;
 }
 
+void createProg(GLuint *shaders, int len) {
+    int i = 0;
+    prog = glCreateProgram();
+    if (!prog) {
+        fprintf(stderr, "Failed to create shader program\n");
+        exit(1);
+    }
+    for (; i < len; i++) {
+        glAttachShader(prog, shaders[i]);
+    }
+    glLinkProgram(prog);
+    GLint status;
+    glGetProgramiv(prog, GL_LINK_STATUS, &status);
+    if (status == GL_FALSE) {
+        GLint infoLen;
+        glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &infoLen);
+        GLchar *info = malloc(sizeof(GLchar) * (infoLen + 1));
+        glGetProgramInfoLog(prog, infoLen, NULL, info);
+        fprintf(stderr, "Linker failure: %s\n", info);
+        exit(1);
+    }
+}
+
 void createBuffer() {
     float vertices[] = {
-        0.0f, 0.0f, 0.0f,
-        0.1f, 0.0f, 0.0f,
-        0.2f, 0.0f, 0.0f,
-        0.3f, 0.0f, 0.0f
+        -1.0f, -1.0f, 0.0f,
+         1.0f, -1.0f, 0.0f,
+         0.0f,  1.0f, 0.0f
     };
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -136,6 +123,21 @@ void init() {
     for (; i < len; i++) {
         glDeleteShader(shaders[i]);
     }
+}
+
+void display() {
+    glClearColor(0.0f, 0.0f, 1.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(prog);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDisableVertexAttribArray(0);
+
+    glUseProgram(0);
+    glutSwapBuffers();
 }
 
 int main(int argc, char *argv[]) {

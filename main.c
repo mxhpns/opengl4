@@ -2,9 +2,11 @@
 #include <GL/freeglut.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 GLuint prog;
 GLuint vbo;
+GLuint timeLoc;
 
 char *readFile(const char *fileName) {
     FILE *f = fopen(fileName, "rb");
@@ -99,16 +101,17 @@ void createProg(GLuint *shaders, int len) {
     }
 }
 
-void createBuffer() {
-    float vertices[] = {
-        -1.0f, -1.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,
-         0.0f,  1.0f, 0.0f
-    };
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+void setUniformLocations() {
+    timeLoc = glGetUniformLocation(prog, "time");
+    GLuint loopDuration = glGetUniformLocation(prog, "loopDuration");
+    GLuint loopDurationFrag = glGetUniformLocation(prog, "loopDurationFrag");
+    glUseProgram(prog);
+    glUniform1f(loopDuration, 5.0f);
+    glUniform1f(loopDurationFrag, 2.5f);
+    glUseProgram(0);
 }
+
+void createBuffer();
 
 void init() {
     createBuffer();
@@ -123,6 +126,29 @@ void init() {
     for (; i < len; i++) {
         glDeleteShader(shaders[i]);
     }
+
+    setUniformLocations();
+}
+
+void createBuffer() {
+    float vertices[] = {
+        -1.0f, -1.0f, 0.0f,
+         1.0f, -1.0f, 0.0f,
+         0.0f,  1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        -0.5f,  1.0f, 0.0f,
+        -1.0f,  0.0f, 0.0f,
+
+         1.0f, 0.0f, 0.0f,
+         0.0f, 1.0f, 0.0f,
+         0.0f, 0.0f, 1.0f,
+         1.0f, 1.0f, 0.0f,
+         1.0f, 0.0f, 1.0f,
+         0.0f, 1.0f, 1.1f
+    };
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 }
 
 void display() {
@@ -130,14 +156,20 @@ void display() {
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(prog);
 
+    glUniform1f(timeLoc, glutGet(GLUT_ELAPSED_TIME) / 1000.0f);
+
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*) (6*3*sizeof(float)));
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 
     glUseProgram(0);
     glutSwapBuffers();
+    glutPostRedisplay();
 }
 
 int main(int argc, char *argv[]) {
